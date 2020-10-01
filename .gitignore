@@ -1,1 +1,7 @@
 env
+.vscode
+*.swp
+.*
+t_*
+!.gitignore
+__pycache__
