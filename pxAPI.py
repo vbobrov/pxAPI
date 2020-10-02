@@ -6,6 +6,10 @@ import ipaddress
 import logging
 import http.client as http_client
 from dateutil import parser
+import asyncio
+import websockets
+import ssl
+import base64
 
 class httpRequestType:
 	get='GET'
@@ -19,8 +23,36 @@ class pxGridServices:
 	profiler='com.cisco.ise.config.profiler'
 	radius='com.cisco.ise.radius'
 	system='com.cisco.ise.system'
+	trustsec='com.cisco.ise.trustsec'
 	trustsecConfig='com.cisco.ise.config.trustsec'
-	trustsecSxp='com.cisco.ise.sxp'
+	sxp='com.cisco.ise.sxp'
+
+class stompFrame:
+	def __init__(self,command,headers,data=''):
+		self.command=command
+		self.headers=headers
+		self.data=data
+	
+	def getFrame(self):
+		frame=self.command+'\n'
+		for key in self.headers:
+			frame=frame+key+':'+self.headers[key]+'\n'
+		frame=frame+'\n'
+		if self.data:
+			frame=frame+self.data+'\n'
+		frame=frame+'\x00'
+		return(frame.encode('utf-8'))
+
+	@staticmethod
+	def parsePacket(packet):
+		lines=packet.decode('utf-8').split('\n')
+		command=lines[0]
+		headers={}
+		for lineNum in range (1,len(lines)-2):
+			header=lines[lineNum].split(':')
+			headers[header[0]]=header[1]
+		data=lines[-1].replace('\x00','')
+		return(stompFrame(command,headers,data))
 
 class pxAPI:
 	def __init__(self,pxGridNode,clientName,clientCertFile,clientKeyFile,rootCAFile):
@@ -108,6 +140,72 @@ class pxAPI:
 		if response.status_code==204:
 			return({})
 		raise Exception("API {} to service {} failed with code {}. Content: {}".format(apiName,serviceName,response.status_code,response.text))
+
+	async def wsConnect(self,url,password):
+		sslContext=ssl.create_default_context()
+		sslContext.load_cert_chain(certfile=self.clientCertFile,keyfile=self.clientKeyFile)
+		sslContext.load_verify_locations(cafile=self.rootCAFile)
+		self.ws=await websockets.connect(uri=url,
+										 extra_headers={'Authorization':'Basic '+base64.b64encode("{}:{}".format(self.clientName,password).encode()).decode()},
+										 ssl=sslContext)
+	
+	async def stompConnect(self,hostName):
+		"""
+		Connect to pxGrid node
+			hostname: FQDN of pxGrid node
+		"""
+		frame=stompFrame('CONNECT',{'accept-version':'1.2','host':hostName})
+		await self.ws.send(frame.getFrame())
+
+	async def stompDisconnect(self,receipt):
+		"""
+		Disconnect from service
+			receipt: This string will echo back from service to confirm disconnect
+		"""
+		frame=stompFrame('DISCONNECT',{'receipt':receipt})
+		await self.ws.send(frame.getFrame())
+		await self.ws.close()
+
+	async def stompSubscribe(self,topicName):
+		"""
+		Subscribe to topic
+			topicName: name of topic
+		"""
+		frame=stompFrame('SUBSCRIBE',{'destination':topicName,'id':'pyAPI'})
+		await self.ws.send(frame.getFrame())
+
+	async def stompSend(self,topicName,data):
+		"""
+		Send stomp packet
+			topicName: Name of topic
+			data: Data to be sent
+		"""
+		frame=stompFrame('SEND',{'topic':topicName,'content-length':str(len(data))},data)
+		await self.ws.send(frame.getFrame())
+	
+	async def stompRead(self):
+		"""
+		Receive and read stomp packet
+			returns stompFrame object
+		"""
+		packet=await self.ws.recv()
+		return(stompFrame.parsePacket(packet))
+	
+	async def topicSubscribe(self,serviceName,topicName):
+		"""
+		Subscribe to topic
+			serviceName: Name of pxGrid service
+			topicName: Name of topic to subscribe to
+		"""
+		serviceInfo=self.serviceLookup(serviceName)
+		topic=serviceInfo['services'][0]['properties'][topicName]
+		pubsubServiceInfo=self.serviceLookup(serviceInfo['services'][0]['properties']['wsPubsubService'])
+		nodeName=pubsubServiceInfo['services'][0]['nodeName']
+		wsUrl=pubsubServiceInfo['services'][0]['properties']['wsUrl']
+		secret=self.getAccessSecret(nodeName)
+		await self.wsConnect(wsUrl,secret)
+		await self.stompConnect(nodeName)
+		await self.stompSubscribe(topic)
 
 	def accountActivate(self,activationWait=False):
 		"""
@@ -410,4 +508,4 @@ class pxAPI:
 		"""
 		Retrieve all SXP bindings
 		"""
-		return(self.sendpxGridAPI(pxGridServices.trustsecSxp,'getBindings'))
+		return(self.sendpxGridAPI(pxGridServices.sxp,'getBindings'))
