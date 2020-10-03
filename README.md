@@ -117,7 +117,7 @@ pxShell> config apply <--config apply command is used to create the api object w
 pxShell> config apply px.cfg <--config apply can load the config file in one step
 
 ```
-### Eexamples
+### Examples
 
 Check if account is approved in ISE
 ```
