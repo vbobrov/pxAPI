@@ -72,7 +72,7 @@ This utility is an interactive wrapper for pxAPI library. It allows interaction 
 
 ## Usage
 
-All commands are document and help can be retrived using help <command>
+All commands are document and help can be retrived using help &lt;command&gt;
 ```
 ./pxShell.py
 pxShell> help
@@ -100,7 +100,8 @@ Config options:
 ```
 
 Before the utility can interface with pxGrid, it has to be configured with pxGrid information and certificates.  
-This is done with config command. The config can also be saved and loaded from a file. The file is in human readable json format.
+This is done with config command. The config can also be saved and loaded from a file. The file is in human readable json format.  
+config apply command must be used to instantiate the API connection.
 
 ```
 pxShell> config pxnode pxgridnode.example.com
@@ -116,7 +117,7 @@ pxShell> config apply <--config apply command is used to create the api object w
 pxShell> config apply px.cfg <--config apply can load the config file in one step
 
 ```
-### Additional examples
+### Eexamples
 
 Check if account is approved in ISE
 ```
