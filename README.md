@@ -27,7 +27,7 @@ pip3 install -r requirements.txt
 
 ## Usage
 
-pxAPI.py file has comments throughout describing all functions
+pxAPI.py file has comments throughout describing all functions.  
 All data is returned in the original form, converted to python dict
 
 ### REST API
