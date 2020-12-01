@@ -55,20 +55,24 @@ class stompFrame:
 		return(stompFrame(command,headers,data))
 
 class pxAPI:
-	def __init__(self,pxGridNode,clientName,clientCertFile,clientKeyFile,rootCAFile):
+	def __init__(self,pxGridNode,clientName,clientCertFile,clientKeyFile,rootCAFile=False):
 		"""
 		Initialize class
 			pxGridNode: FQDN of pxGrid PSN
 			clientName: Name that will show up in pxGrid clients list in ISE
 			clientCertFile: File name containing client certificate
 			clientKeyFile: File name containing private key. Encrypted key is not supported
-			rootCAFile: File name containing root CA for pxGrid PSN certificate
+			rootCAFile: File name containing root CA for pxGrid PSN certificate.
+						If root CA is not specified, server certificate validation is disabled.
 		"""
 		self.pxGridNode=pxGridNode
 		self.clientName=clientName
 		self.clientCertFile=clientCertFile
 		self.clientKeyFile=clientKeyFile
-		self.rootCAFile=rootCAFile
+		if rootCAFile:
+			self.rootCAFile=rootCAFile
+		else:
+			self.rootCAFile=False
 
 	def __isValidIP(self,ipAddress):
 		"""

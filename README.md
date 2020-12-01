@@ -37,7 +37,7 @@ These are fairly straight forward. Review the comments in the code for reference
 #!/usr/bin/env python3
 from pxAPI import pxAPI
 
-# Instatiate object
+# Instatiate object. Root CA argument can be omitted to disable server certificate verification.
 api=pxAPI('pxgridnode.example.com','client-name','client.cer','client.key','root.cer')
 
 # Check account activation status. This will connect to pxGrid node and check if our account is in approved and enabled state

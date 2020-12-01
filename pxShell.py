@@ -18,7 +18,7 @@ class pxShell(cmd.Cmd):
 	def onecmd(self,line):
 		if line and not line.split()[0] in ['EOF','config','debug','help']:
 			for configOption in self.config:
-				if not self.config[configOption]:
+				if configOption!='rootCAFile' and not self.config[configOption]:
 					print('Configuration is incomplete. Use config show to verify.')
 					return
 			if not hasattr(self,'api'):
@@ -317,9 +317,9 @@ class pxShell(cmd.Cmd):
 		name <clientname>: Set pxGrid client name
 		cert <certfile>: Set client certificate file name
 		key <keyfile>: Set client private key
-		root <rootfile>: Set root CA file
+		root [<rootfile>]: Set root CA file. Leave out <rootfile> to disable server certificate verification
 		"""
-		validOptions={'save':[2],'load':[2],'show':[1],'pxnode':[2],'name':[2],'cert':[2],'key':[2],'root':[2],'apply':[1,2]}
+		validOptions={'save':[2],'load':[2],'show':[1],'pxnode':[2],'name':[2],'cert':[2],'key':[2],'root':[1,2],'apply':[1,2]}
 		args=line.split()
 		if args[0] in validOptions and len(args) in validOptions[args[0]]:
 			if args[0]=='save':
@@ -347,7 +347,10 @@ class pxShell(cmd.Cmd):
 			if args[0]=='key':
 				self.config['clientKeyFile']=args[1]
 			if args[0]=='root':
-				self.config['rootCAFile']=args[1]
+				if len(args)==2:
+					self.config['rootCAFile']=args[1]
+				else:
+					self.config['rootCAFile']=''
 		else:
 			print("Invalid command. See help config")
 
