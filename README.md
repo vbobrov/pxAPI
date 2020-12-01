@@ -96,7 +96,7 @@ Config options:
                 name <clientname>: Set pxGrid client name
                 cert <certfile>: Set client certificate file name
                 key <keyfile>: Set client private key
-                root <rootfile>: Set root CA file
+                root [<rootfile>]: Set root CA file. Leave out <rootfile> to disable server certificate verification
 ```
 
 Before the utility can interface with pxGrid, it has to be configured with pxGrid information and certificates.  
