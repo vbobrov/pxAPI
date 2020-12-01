@@ -148,7 +148,8 @@ class pxAPI:
 	async def wsConnect(self,url,password):
 		sslContext=ssl.create_default_context()
 		sslContext.load_cert_chain(certfile=self.clientCertFile,keyfile=self.clientKeyFile)
-		sslContext.load_verify_locations(cafile=self.rootCAFile)
+		if self.rootCAFile:
+			sslContext.load_verify_locations(cafile=self.rootCAFile)
 		self.ws=await websockets.connect(uri=url,
 										 extra_headers={'Authorization':'Basic '+base64.b64encode("{}:{}".format(self.clientName,password).encode()).decode()},
 										 ssl=sslContext)
