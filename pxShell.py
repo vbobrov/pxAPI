@@ -29,6 +29,9 @@ class pxShell(cmd.Cmd):
 		except Exception as e:
 			print("Error occured: {}".format(e))
 
+	def printJSON(self,value):
+		print(json.dumps(value,indent=2))
+
 	async def futureReadMessage(self,api,future):
 		try:
 			frame = await api.stompRead()
@@ -49,7 +52,7 @@ class pxShell(cmd.Cmd):
 				break
 			else:
 				frame = future.result()
-				print("Received Packet: command={} content={}".format(frame.command,frame.data))
+				print("Received Packet: command={} content:\n{}".format(frame.command,json.dumps(frame.data,indent=2)))
 
 	def topicSubscribe(self,serviceName,topicName):
 		loop = asyncio.get_event_loop()
@@ -62,7 +65,7 @@ class pxShell(cmd.Cmd):
 		serviceInfo=self.api.serviceLookup(serviceName)
 		for serviceProperty in serviceInfo['services'][0]['properties']:
 			if re.search(r'^.*Topic',serviceProperty,re.IGNORECASE):
-				print(serviceProperty)
+				self.printJSON(serviceProperty)
 
 	def emptyline(self):
 		pass
@@ -81,15 +84,15 @@ class pxShell(cmd.Cmd):
 		args=line.split()
 		if line and args[0] in validOptions and len(args)==validOptions[args[0]]:
 			if args[0]=='all':
-				print(self.api.getSessions())
+				self.printJSON(self.api.getSessions())
 			if args[0]=='byip':
-				print(self.api.getSessionByIpAddress(args[1]))
+				self.printJSON(self.api.getSessionByIpAddress(args[1]))
 			if args[0]=='bymac':
-				print(self.api.getSessionByMacAddress(args[1]))
+				self.printJSON(self.api.getSessionByMacAddress(args[1]))
 			if args[0]=='groups':
-				print(self.api.getUserGroups())
+				self.printJSON(self.api.getUserGroups())
 			if args[0]=='usergroups':
-				print(self.api.getUserGroupByUserName(args[1]))
+				self.printJSON(self.api.getUserGroupByUserName(args[1]))
 			if args[0]=='topics':
 				self.printTopics(pxGridServices.session)
 			if args[0]=='subscribe':
@@ -119,31 +122,31 @@ class pxShell(cmd.Cmd):
 		args=line.split()
 		if line and args[0] in validOptions and len(args)==validOptions[args[0]]:
 			if args[0]=='policies':
-				print(self.api.ancGetPolicies())
+				self.printJSON(self.api.ancGetPolicies())
 			if args[0]=='policybyname':
-				print(self.api.ancGetPolicyByName(args[1]))
+				self.printJSON(self.api.ancGetPolicyByName(args[1]))
 			if args[0]=='create':
-				print(self.api.ancCreatePolicy(args[1],args[2]))
+				self.printJSON(self.api.ancCreatePolicy(args[1],args[2]))
 			if args[0]=='delete':
-				print(self.api.ancDeletePolicyByName(args[1]))
+				self.printJSON(self.api.ancDeletePolicyByName(args[1]))
 			if args[0]=='endpoints':
-				print(self.api.ancGetEndponts())
+				self.printJSON(self.api.ancGetEndponts())
 			if args[0]=='endpointpolicies':
-				print(self.api.ancGetEndpointPolicies())
+				self.printJSON(self.api.ancGetEndpointPolicies())
 			if args[0]=='endpointsbymac':
-				print(self.api.ancGetEndpontByMacAddress(args[1]))
+				self.printJSON(self.api.ancGetEndpontByMacAddress(args[1]))
 			if args[0]=='endpointsbynas':
-				print(self.api.ancGetEndpointByNasIpAddress(args[1],args[2]))
+				self.printJSON(self.api.ancGetEndpointByNasIpAddress(args[1],args[2]))
 			if args[0]=='applybyip':
-				print(self.api.ancApplyEndpointByIpAddress(args[1],args[2]))
+				self.printJSON(self.api.ancApplyEndpointByIpAddress(args[1],args[2]))
 			if args[0]=='applybymac':
-				print(self.api.ancApplyEndpointByMacAddress(args[1],args[2]))
+				self.printJSON(self.api.ancApplyEndpointByMacAddress(args[1],args[2]))
 			if args[0]=='applybynas':
-				print(self.api.ancApplyEndpointPolicy(args[1],args[2],args[3]))
+				self.printJSON(self.api.ancApplyEndpointPolicy(args[1],args[2],args[3]))
 			if args[0]=='clearbymac':
-				print(self.api.ancClearEndpointByMacAddress(args[1]))
+				self.printJSON(self.api.ancClearEndpointByMacAddress(args[1]))
 			if args[0]=='clearbynas':
-				print(self.api.ancClearEndpointPolicy(args[1],args[2]))
+				self.printJSON(self.api.ancClearEndpointPolicy(args[1],args[2]))
 			if args[0]=='topics':
 				self.printTopics(pxGridServices.anc)
 			if args[0]=='subscribe':
@@ -164,13 +167,13 @@ class pxShell(cmd.Cmd):
 		args=line.split()
 		if line and args[0] in validOptions and len(args)==validOptions[args[0]]:
 			if args[0]=='endpoints':
-				print(self.api.mdmGetEndpoints())
+				self.printJSON(self.api.mdmGetEndpoints())
 			if args[0]=='endpointsbymac':
-				print(self.api.mdmGetEndpointByMacAddress(args[1]))
+				self.printJSON(self.api.mdmGetEndpointByMacAddress(args[1]))
 			if args[0]=='endpointsbytype':
-				print(self.api.mdmGetEndpointsByType(args[1]))
+				self.printJSON(self.api.mdmGetEndpointsByType(args[1]))
 			if args[0]=='endpointsbyos':
-				print(self.api.mdmGetEndpointsByOsType(args[1]))
+				self.printJSON(self.api.mdmGetEndpointsByOsType(args[1]))
 			if args[0]=='topics':
 				self.printTopics(pxGridServices.mdm)
 			if args[0]=='subscribe':
@@ -196,9 +199,9 @@ class pxShell(cmd.Cmd):
 			else:
 				startTimestamp=None
 			if args[0]=='healths':
-				print(self.api.systemGetHealths(nodeName,startTimestamp))
+				self.printJSON(self.api.systemGetHealths(nodeName,startTimestamp))
 			if args[0]=='perfs':
-				print(self.api.systemGetPerformances(nodeName,startTimestamp))
+				self.printJSON(self.api.systemGetPerformances(nodeName,startTimestamp))
 		else:
 			print("Invalid command. See help system")
 	
@@ -212,7 +215,7 @@ class pxShell(cmd.Cmd):
 		args=line.split()
 		if line and args[0] in validOptions and len(args)==validOptions[args[0]]:
 			if args[0]=='list':
-				print(self.api.profilerGetProfiles())
+				self.printJSON(self.api.profilerGetProfiles())
 			if args[0]=='topics':
 				self.printTopics(pxGridServices.profiler)
 			if args[0]=='subscribe':
@@ -231,9 +234,9 @@ class pxShell(cmd.Cmd):
 		if line and args[0] in validOptions and len(args) in validOptions[args[0]]:
 			if args[0]=='list':
 				if len(args)==1:
-					print(self.api.radiusGetFailures())
+					self.printJSON(self.api.radiusGetFailures())
 				else:
-					print(self.api.radiusGetFailureById(int(args[0])))
+					self.printJSON(self.api.radiusGetFailureById(int(args[0])))
 			if args[0]=='topics':
 				self.printTopics(pxGridServices.radius)
 			if args[0]=='subscribe':
@@ -254,7 +257,7 @@ class pxShell(cmd.Cmd):
 			if args[0]=='subscribe':
 				self.topicSubscribe(pxGridServices.trustsec,args[1])
 		else:
-			print("Invalid command. See help trustsec")
+			self.printJSON("Invalid command. See help trustsec")
 
 	def do_trustseccfg(self,line):
 		"""trustseccfg options:
@@ -270,18 +273,18 @@ class pxShell(cmd.Cmd):
 		if line and args[0] in validOptions and len(args) in validOptions[args[0]]:
 			if args[0]=='sgt':
 				if len(args)==1:
-					print(self.api.trustsecGetSecurityGroups())
+					self.printJSON(self.api.trustsecGetSecurityGroups())
 				else:
-					print(self.api.trustsecGetSecurityGroups(args[1]))
+					self.printJSON(self.api.trustsecGetSecurityGroups(args[1]))
 			if args[0]=='sgacl':
 				if len(args)==1:
-					print(self.api.trustsecGetSecurityGroupAcls())
+					self.printJSON(self.api.trustsecGetSecurityGroupAcls())
 				else:
-					print(self.api.trustsecGetSecurityGroupAcls(args[1]))
+					self.printJSON(self.api.trustsecGetSecurityGroupAcls(args[1]))
 			if args[0]=='policies':
-				print(self.api.trustsecGetEgressPolicies())
+				self.printJSON(self.api.trustsecGetEgressPolicies())
 			if args[0]=='matrices':
-				print(self.api.trustsecGetEgressMatrices())
+				self.printJSON(self.api.trustsecGetEgressMatrices())
 			if args[0]=='topics':
 				self.printTopics(pxGridServices.trustsecConfig)
 			if args[0]=='subscribe':
@@ -299,7 +302,7 @@ class pxShell(cmd.Cmd):
 		args=line.split()
 		if line and args[0] in validOptions and len(args)==validOptions[args[0]]:
 			if args[0]=='bindings':
-				print(self.api.trustsecGetBindings())
+				self.printJSON(self.api.trustsecGetBindings())
 			if args[0]=='topics':
 				self.printTopics(pxGridServices.sxp)
 			if args[0]=='subscribe':
@@ -331,7 +334,7 @@ class pxShell(cmd.Cmd):
 				self.config=json.loads(configFile.read())
 				configFile.close()
 			if args[0]=='show':
-				print(self.config)
+				self.printJSON(self.config)
 			if args[0]=='apply':
 				if len(args)==2:
 					configFile=open(args[1],'r')
