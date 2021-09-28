@@ -5,6 +5,7 @@ This library simplifies interaction with ISE pxGrid
 Additonal reference material:
 * https://github.com/cisco-pxgrid/pxgrid-rest-ws/wiki
 * https://developer.cisco.com/docs/pxgrid/
+* https://developer.cisco.com/codeexchange/github/repo/cisco-pxgrid/python-advanced-examples
 
 ## Limitations
 
