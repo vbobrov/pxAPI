@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+#
+# Copyright (c) 2021 Cisco Systems, Inc. and/or its affiliates
+#
 from pxAPI import pxAPI,stompFrame
 import signal
 import asyncio

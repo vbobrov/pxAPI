@@ -1,3 +1,6 @@
+#
+# Copyright (c) 2021 Cisco Systems, Inc. and/or its affiliates
+#
 import requests
 import json
 import time
