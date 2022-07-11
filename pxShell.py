@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2021 Cisco Systems, Inc. and/or its affiliates
 #
+from requests import JSONDecodeError
 from pxAPI import pxAPI,stompFrame,pxGridServices
 import cmd
 import json
@@ -16,14 +17,18 @@ import re
 class pxShell(cmd.Cmd):
 	intro='Welcome to pxShell.'
 	prompt='pxShell> '
-	config={'clientName':'','pxGridNode':'','clientCertFile':'','clientKeyFile':'','rootCAFile':''}
+	config={'clientName':'','pxGridNode':'','clientCertFile':'','clientKeyFile':'','rootCAFile':'','password': ''}
 
 	def onecmd(self,line):
-		if line and not line.split()[0] in ['EOF','config','debug','help']:
-			for configOption in self.config:
-				if configOption!='rootCAFile' and not self.config[configOption]:
-					print('Configuration is incomplete. Use config show to verify.')
-					return
+		if line and not line.split()[0] in ['EOF','accountcreate','config','debug','help']:
+			if self.config['clientName']=='':
+				print('Client name is not defined. Use config show to verify.')
+				return
+			if self.config['pxGridNode']=='':
+				print('pxGrid Node is not defined. Use config show to verify.')
+				return
+			if (self.config['clientCertFile']=='' or self.config['clientkeyFile']=='') and self.config['password']=='':
+				print('Either client certificate/key or password is required. Use config show to verify.')
 			if not hasattr(self,'api'):
 				print('API is not initialized. Use config apply.')
 				return
@@ -55,7 +60,11 @@ class pxShell(cmd.Cmd):
 				break
 			else:
 				frame = future.result()
-				print("Received Packet: command={} content:\n{}".format(frame.command,json.dumps(frame.data,indent=2)))
+				try:
+					frameData=json.loads(frame.data)
+				except json.decoder.JSONDecodeError:
+					frameData={}
+				print("Received Packet: command={} content:\n{}".format(frame.command,json.dumps(frameData,indent=2)))
 
 	def topicSubscribe(self,serviceName,topicName):
 		loop = asyncio.get_event_loop()
@@ -324,8 +333,9 @@ class pxShell(cmd.Cmd):
 		cert <certfile>: Set client certificate file name
 		key <keyfile>: Set client private key
 		root [<rootfile>]: Set root CA file. Leave out <rootfile> to disable server certificate verification
+		password <password>: Set password for password based authentication
 		"""
-		validOptions={'save':[2],'load':[2],'show':[1],'pxnode':[2],'name':[2],'cert':[2],'key':[2],'root':[1,2],'apply':[1,2]}
+		validOptions={'save':[2],'load':[2],'show':[1],'pxnode':[2],'name':[2],'cert':[2],'key':[2],'root':[1,2],'password':[1],'apply':[1,2]}
 		args=line.split()
 		if args[0] in validOptions and len(args) in validOptions[args[0]]:
 			if args[0]=='save':
@@ -343,7 +353,7 @@ class pxShell(cmd.Cmd):
 					configFile=open(args[1],'r')
 					self.config=json.loads(configFile.read())
 					configFile.close()
-				self.api=pxAPI(self.config['pxGridNode'],self.config['clientName'],self.config['clientCertFile'],self.config['clientKeyFile'],self.config['rootCAFile'])
+				self.api=pxAPI(self.config['pxGridNode'],self.config['clientName'],self.config['clientCertFile'],self.config['clientKeyFile'],self.config['rootCAFile'],self.config['password'])
 			if args[0]=='pxnode':
 				self.config['pxGridNode']=args[1]
 			if args[0]=='name':
@@ -357,19 +367,32 @@ class pxShell(cmd.Cmd):
 					self.config['rootCAFile']=args[1]
 				else:
 					self.config['rootCAFile']=''
+			if args[0]=='password':
+				self.config['password']=args[1]
 		else:
 			print("Invalid command. See help config")
 
+	def do_accountcreate(self,line):
+		"""Create password based account
+		Client name (username) is take from config
+		"""
+		if self.config["clientName"]=="" or self.config["pxGridNode"]=="":
+			print("clientName and pxGridNode are require for this command. Use config command")
+		else:
+			self.api=pxAPI(self.config['pxGridNode'],self.config['clientName'],'','',self.config['rootCAFile'])
+			accountInfo=self.api.accountCreate()
+			self.printJSON(accountInfo)
+			self.config["password"]=accountInfo["password"]
+			print("Password automatically set in the config. Use config show to verify")
+
+	
 	def do_activate(self,line):
 		"""Activate will attempt to connect to pxGrid node and check if the client is approved
 		wait parameter will retry activation every 60 seconds until the client is approved
 		"""
 		if line in ['','wait']:
 			accountState=self.api.accountActivate(line=='wait')
-			if accountState:
-				print('Account is enabled')
-			else:
-				print('Account is disabled')
+			self.printJSON(accountState)
 		else:
 			print("Invalid command. See help config")
 

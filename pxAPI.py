@@ -58,7 +58,7 @@ class stompFrame:
 		return(stompFrame(command,headers,data))
 
 class pxAPI:
-	def __init__(self,pxGridNode,clientName,clientCertFile,clientKeyFile,rootCAFile=False):
+	def __init__(self,pxGridNode,clientName,clientCertFile=None,clientKeyFile=None,rootCAFile=False,password=None):
 		"""
 		Initialize class
 			pxGridNode: FQDN of pxGrid PSN
@@ -67,11 +67,14 @@ class pxAPI:
 			clientKeyFile: File name containing private key. Encrypted key is not supported
 			rootCAFile: File name containing root CA for pxGrid PSN certificate.
 						If root CA is not specified, server certificate validation is disabled.
+			nodeName: Client name when using password based authentication
+			password: Password when using password based authentication
 		"""
 		self.pxGridNode=pxGridNode
 		self.clientName=clientName
 		self.clientCertFile=clientCertFile
 		self.clientKeyFile=clientKeyFile
+		self.password=password
 		if rootCAFile:
 			self.rootCAFile=rootCAFile
 		else:
@@ -107,38 +110,45 @@ class pxAPI:
 		if not self.__isValidMac(macAddress):
 			raise Exception("Invalid MAC Address (must be HH:HH:HH:HH:HH:HH) {}".format(macAddress))
 
-	def sendHTTPRequest(self,requestType,url,username,password,headers={},data={}):
+	def sendHTTPRequest(self,requestType,url,username,password,headers={},data={},**kwargs):
+		httpParams={}
+		if self.clientCertFile and self.clientKeyFile:
+			httpParams.update({'cert': (self.clientCertFile,self.clientKeyFile)})
+		if not kwargs.get("skipauth"):
+			httpParams.update({"auth": (username,password)})
 		if requestType==httpRequestType.get:
 			response=requests.get(url,	headers=headers,
-										auth=(username,password),
-										cert=(self.clientCertFile,self.clientKeyFile),
-										verify=self.rootCAFile)
+										verify=self.rootCAFile,
+										**httpParams)
 			return(response)
 		if requestType==httpRequestType.post:
 			response=requests.post(url, data=json.dumps(data),
 										headers=headers,
-										auth=(username,password),
-										cert=(self.clientCertFile,self.clientKeyFile),
-										verify=self.rootCAFile)
+										verify=self.rootCAFile,
+										**httpParams)
 			return(response)
 		raise Exception("sendHTTPRequest: Unknown Request Type {}".format(requestType))
 	
-	def sendpxGridRequest(self,service,data={}):
+	def sendpxGridRequest(self,service,data={},**kwargs):
 		url="https://{}:8910/pxgrid/control/{}".format(self.pxGridNode,service)
 		headers={'Content-Type':'application/json','Accept':'application/json'}
-		response=self.sendHTTPRequest(httpRequestType.post,url,self.clientName,None,headers,data)
+		if self.clientCertFile and self.clientKeyFile:
+			password=None
+		else:
+			password=self.password
+		response=self.sendHTTPRequest(httpRequestType.post,url,self.clientName,password,headers,data,**kwargs)
 		if response.status_code==200:
 			return(json.loads(response.text))
 		raise Exception("Request {} failed with code {}. Content: {}".format(service,response.status_code,response.text))
 	
-	def sendpxGridAPI(self,serviceName,apiName,data={}):
+	def sendpxGridAPI(self,serviceName,apiName,data={},**kwargs):
 		serviceInfo=self.serviceLookup(serviceName)
 		nodeName=serviceInfo['services'][0]['nodeName']
 		restBaseUrl=serviceInfo['services'][0]['properties']['restBaseUrl']
 		secret=self.getAccessSecret(nodeName)
 		url="{}/{}".format(restBaseUrl,apiName)
 		headers={'Content-Type':'application/json','Accept':'application/json'}
-		response=self.sendHTTPRequest(httpRequestType.post,url,self.clientName,secret,headers,data)
+		response=self.sendHTTPRequest(httpRequestType.post,url,self.clientName,secret,headers,data,**kwargs)
 		if response.status_code==200:
 			try:
 				return(json.loads(response.text))
@@ -150,7 +160,8 @@ class pxAPI:
 
 	async def wsConnect(self,url,password):
 		sslContext=ssl.create_default_context()
-		sslContext.load_cert_chain(certfile=self.clientCertFile,keyfile=self.clientKeyFile)
+		if self.clientCertFile and self.clientKeyFile:
+			sslContext.load_cert_chain(certfile=self.clientCertFile,keyfile=self.clientKeyFile)
 		if self.rootCAFile:
 			sslContext.load_verify_locations(cafile=self.rootCAFile)
 		self.ws=await websockets.connect(uri=url,
@@ -215,6 +226,15 @@ class pxAPI:
 		await self.stompConnect(nodeName)
 		await self.stompSubscribe(topic)
 
+	def accountCreate(self):
+		"""
+		Creates a username for password based access
+			nodeName: Node name for the new account
+
+			Returns a dict with new account information
+		"""
+		return(self.sendpxGridRequest('AccountCreate',{'nodeName': self.clientName},skipauth=True))
+	
 	def accountActivate(self,activationWait=False):
 		"""
 		Activate pxGrid Account in ISE
@@ -225,7 +245,7 @@ class pxAPI:
 		while True:
 			accountState=self.sendpxGridRequest('AccountActivate',{})
 			if not activationWait or accountState['accountState']=='ENABLED':
-				return(accountState['accountState']=='ENABLED')
+				return(accountState)
 			time.sleep(60)
 	
 	def serviceLookup(self,serviceName):
