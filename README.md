@@ -73,8 +73,8 @@ The first step to use password authentication is to request a bootstrap account 
 # Instatiate API object with minimum information. Root CA argument can be omitted to disable server certificate verification.
 api=pxAPI('pxgridnode.example.com','pwdclient1','','','root.cer')
 
-# Next, create the account. The account will be create with the username specified as client name above.
-# This password has to be stored on the client side.
+# Next, create the account. The account will be created with the username specified as client name above.
+# The password returned by ISE has to be stored on the client side.
 # The account will show in Initialized state on ISE
 # This API call can be executed multiple times with the same name to generate a new password until the account is activated below
 accountInfo=api.accountCreate()
@@ -85,7 +85,7 @@ password=accountInfo['password']
 # We now need to initialize API again with the password this time
 api=pxAPI('pxgridnode.example.com','pwdclient1','','','root.cer',password)
 
-# To request this account to be approve, we need to execute accountActivate API call.
+# To request this account to be approved, we need to execute accountActivate API call.
 # Note that once this account is requested to be activated, you can no longer call accountCreate API above with the same client name
 # Once the account is in Pending state, it has to be approved in ISE under Administration > pxGrid Services > Client Management
 accountStatus=api.accountActivate()
@@ -144,6 +144,7 @@ Config options:
 ```
 
 Before the utility can interface with pxGrid, it has to be configured with pxGrid information and certificates.  
+Note that client side certificate and private key is not required for password based authentication. See an example below.
 This is done with config command. The config can also be saved and loaded from a file. The file is in human readable json format.  
 config apply command must be used to instantiate the API connection.
 
