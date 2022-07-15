@@ -335,7 +335,7 @@ class pxShell(cmd.Cmd):
 		root [<rootfile>]: Set root CA file. Leave out <rootfile> to disable server certificate verification
 		password <password>: Set password for password based authentication
 		"""
-		validOptions={'save':[2],'load':[2],'show':[1],'pxnode':[2],'name':[2],'cert':[2],'key':[2],'root':[1,2],'password':[1],'apply':[1,2]}
+		validOptions={'save':[2],'load':[2],'show':[1],'pxnode':[2],'name':[2],'cert':[2],'key':[2],'root':[1,2],'password':[2],'apply':[1,2]}
 		args=line.split()
 		if args[0] in validOptions and len(args) in validOptions[args[0]]:
 			if args[0]=='save':
