@@ -20,7 +20,7 @@ pxGrid requires FQDNs of all the nodes to be resolvable. It is not possible to u
 * No support for Dynamic Topics or Context-In
 * Websockets (subscribing to topics) require that the pxGrid node certificate is trusted
 
-Additonal reference material:
+## Additonal reference material:
 * https://github.com/cisco-pxgrid/pxgrid-rest-ws/wiki
 * https://developer.cisco.com/docs/pxgrid/
 * https://developer.cisco.com/codeexchange/github/repo/cisco-pxgrid/python-advanced-examples
