@@ -17,7 +17,7 @@ pxGrid requires FQDNs of all the nodes to be resolvable. It is not possible to u
 
 * pxGrid API 2.0 only. No support for 1.0
 * Private key must be unencrypted
-* No support for Dynamic Topics or Context-In
+* No support for Dynamic Topics
 * Websockets (subscribing to topics) require that the pxGrid node certificate is trusted
 
 ## Additonal reference material:

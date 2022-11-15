@@ -42,7 +42,7 @@ class stompFrame:
 			frame=frame+key+':'+self.headers[key]+'\n'
 		frame=frame+'\n'
 		if self.data:
-			frame=frame+self.data+'\n'
+			frame=frame+self.data
 		frame=frame+'\x00'
 		return(frame.encode('utf-8'))
 

@@ -8,11 +8,14 @@ import cmd
 import json
 import logging
 import asyncio
+import ssl
+import websocket
 import http.client as http_client
 import signal
+import re
 from asyncio.tasks import FIRST_COMPLETED
 from websockets import ConnectionClosed
-import re
+from base64 import b64encode
 
 class pxShell(cmd.Cmd):
 	intro='Welcome to pxShell.'
@@ -27,7 +30,7 @@ class pxShell(cmd.Cmd):
 			if self.config['pxGridNode']=='':
 				print('pxGrid Node is not defined. Use config show to verify.')
 				return
-			if (self.config['clientCertFile']=='' or self.config['clientkeyFile']=='') and self.config['password']=='':
+			if (self.config['clientCertFile']=='' or self.config['clientKeyFile']=='') and self.config['password']=='':
 				print('Either client certificate/key or password is required. Use config show to verify.')
 			if not hasattr(self,'api'):
 				print('API is not initialized. Use config apply.')
@@ -396,6 +399,64 @@ class pxShell(cmd.Cmd):
 		else:
 			print("Invalid command. See help config")
 
+	def do_endpoint(self,line):
+		"""Post endpoint asset information using Context-In
+		endpoint <json>. json must be in the format documented here: https://github.com/cisco-pxgrid/pxgrid-rest-ws/wiki/Endpoint-Asset.
+		The contents of the JSON data must be combined into a single line. Example:
+		Source JSON: 
+		{
+			"opType": "CREATE",
+			"asset": {
+				"assetId": 1,
+				"assetName": "IOT1",
+				"assetIpAddress": "1.2.3.4",
+				"assetMacAddress": "33:44:55:66:77:88",
+				"assetVendor": "CL",
+				"assetHwRevision": "1.0",
+				"assetSwRevision": "2.0",
+				"assetProtocol": "Telnet",
+				"assetProductId": "Wifi-IOT",
+				"assetSerialNumber": "ABC12345",
+				"assetDeviceType": "WiFi",
+				"assetConnectedLinks": [
+					{
+						"key": "wifi1",
+						"value": "ssid1"
+					}
+				]
+			}
+		}
+		Command:
+		endpoint {"opType": "CREATE","asset": {"assetId": 1,"assetName": "IOT1","assetIpAddress": "1.2.3.4","assetMacAddress": "33:44:55:66:77:88","assetVendor": "CL","assetHwRevision": "1.0","assetSwRevision": "2.0","assetProtocol": "Telnet","assetProductId": "Wifi-IOT","assetSerialNumber": "ABC12345","assetDeviceType": "WiFi","assetConnectedLinks": [{"key": "wifi1","value": "ssid1"}]}}
+		"""
+		endpoint_data=json.dumps(json.loads(line))
+
+		pubsub=self.api.serviceLookup("com.cisco.ise.pubsub")
+		wsUrl=pubsub["services"][0]["properties"]["wsUrl"]
+		nodeName=pubsub["services"][0]["nodeName"]
+		secret=self.api.getAccessSecret(nodeName)
+		ssl_context=ssl.create_default_context()
+		ssl_context.load_verify_locations(cafile=".demo-ca.cer")
+		ws=websocket.create_connection(wsUrl,
+			sslopt={"context": ssl_context},
+			header={"Authorization": "Basic "+b64encode((f"pxgrid-client:{secret}").encode()).decode()}
+		)
+		frame=stompFrame("CONNECT",{
+			"accept-version": "1.2",
+			"host": nodeName
+			},
+		)
+		ws.send(frame.getFrame(),websocket.ABNF.OPCODE_BINARY)
+		frame=stompFrame("SEND",{
+			"destination": "/topic/com.cisco.endpoint.asset",
+			"content-length": str(len(endpoint_data))
+			},
+			endpoint_data
+		)
+		print(ws.recv())
+		ws.send(frame.getFrame(),websocket.ABNF.OPCODE_BINARY)
+		ws.close()
+
 	def do_debug(self,line):
 		"""enable verbose http and websocket messages"""
 		http_client.HTTPConnection.debuglevel = 1
@@ -407,6 +468,7 @@ class pxShell(cmd.Cmd):
 		logger = logging.getLogger('websockets')
 		logger.setLevel(logging.DEBUG)
 		logger.addHandler(logging.StreamHandler())
+		websocket.enableTrace(True)
 
 	def do_EOF(self,line):
 		return(True)
