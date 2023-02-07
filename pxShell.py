@@ -436,7 +436,7 @@ class pxShell(cmd.Cmd):
 		nodeName=pubsub["services"][0]["nodeName"]
 		secret=self.api.getAccessSecret(nodeName)
 		ssl_context=ssl.create_default_context()
-		ssl_context.load_verify_locations(cafile=".demo-ca.cer")
+		ssl_context.load_verify_locations(cafile=self.config['rootCAFile'])
 		ws=websocket.create_connection(wsUrl,
 			sslopt={"context": ssl_context},
 			header={"Authorization": "Basic "+b64encode((f"pxgrid-client:{secret}").encode()).decode()}
