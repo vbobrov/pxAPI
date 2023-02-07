@@ -439,7 +439,7 @@ class pxShell(cmd.Cmd):
 		ssl_context.load_verify_locations(cafile=self.config['rootCAFile'])
 		ws=websocket.create_connection(wsUrl,
 			sslopt={"context": ssl_context},
-			header={"Authorization": "Basic "+b64encode((f"pxgrid-client:{secret}").encode()).decode()}
+			header={"Authorization": "Basic "+b64encode((f"{self.config['clientName']}:{secret}").encode()).decode()}
 		)
 		frame=stompFrame("CONNECT",{
 			"accept-version": "1.2",
