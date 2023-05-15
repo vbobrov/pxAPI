@@ -1,7 +1,7 @@
 [![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/vbobrov/pxAPI)
 
 # Outdated
-This is an old version of this module and CLI tool. The new version is published here: https://github.com/vbobrov/px-api
+This is an old version of this module and CLI tool. The new version is published here: https://github.com/vbobrov/pxgrid-api
 
 # Introduction
 This repo includes two components.
